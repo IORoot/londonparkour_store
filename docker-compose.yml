@@ -44,7 +44,7 @@ services:
       - db
     image: nginx:1.23.4-alpine
     platform: $PLATFORM
-    profiles: ['webserver_dev']
+    profiles: ['dev']
     container_name: webserver_dev
     restart: unless-stopped
     ports:
@@ -58,10 +58,10 @@ services:
 
   webserver_live:
     depends_on:
-      - db
+      - wordpress
     image: nginx:1.23.4-alpine
     platform: $PLATFORM
-    profiles: ['webserver_live']
+    profiles: ['live']
     container_name: webserver_live
     restart: unless-stopped
     ports:
@@ -70,9 +70,22 @@ services:
     volumes:
       - wordpress:/var/www/html
       - ./nginx-conf-live:/etc/nginx/conf.d
+      - certbot-etc:/etc/letsencrypt
     networks:
       - app-network
 
+  certbot:
+    depends_on:
+      - webserver_live
+    image: certbot/certbot
+    profiles: ['live']
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - wordpress:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email $CERTBOT_EMAIL --agree-tos --no-eff-email --staging -d $CERTBOT_DOMAIN -d www.$CERTBOT_DOMAIN
+
+  
 volumes:
   wordpress:
   dbdata:
