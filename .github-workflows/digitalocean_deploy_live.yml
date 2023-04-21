@@ -1,0 +1,29 @@
+name: DigitalOcean_Deploy_Live
+
+on:
+  # push:
+  #   branches: [ main ]
+
+  # Via a webhook
+  repository_dispatch:
+    types: digitalocean_deploy_live
+
+  workflow_dispatch: 
+
+
+jobs:
+  Build:
+    runs-on: self-hosted
+
+    steps:
+
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: .env file
+        run: |
+          echo '${{ secrets.ENV_LIVE_B64 }}' > .env
+
+      - name: Run build
+        run: |
+          docker compose up -d
