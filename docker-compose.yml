@@ -83,7 +83,7 @@ services:
     volumes:
       - certbot-etc:/etc/letsencrypt
       - wordpress:/var/www/html
-    command: certonly --webroot --webroot-path=/var/www/html --email $CERTBOT_EMAIL --agree-tos --no-eff-email --$CERTBOT_FLAG -d $CERTBOT_DOMAIN -d www.$CERTBOT_DOMAIN
+    command: certonly --webroot --webroot-path=/var/www/html --email $CERTBOT_EMAIL --agree-tos --no-eff-email --$CERTBOT_FLAG -d $CERTBOT_DOMAIN -d www.$CERTBOT_DOMAIN -d test.$CERTBOT_DOMAIN
 
   
 volumes:
