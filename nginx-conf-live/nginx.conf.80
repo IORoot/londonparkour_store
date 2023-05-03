@@ -2,7 +2,7 @@ server {
         listen 80;
         listen [::]:80;
 
-        server_name startparkour.com www.startparkour.com;
+        server_name store.londonparkour.com www.store.londonparkour.com startparkour.com www.startparkour.com;
 
         index index.php index.html index.htm;
 
