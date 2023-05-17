@@ -5,10 +5,10 @@ services:
   # ╭──────────────────────────────────────────────────────────╮
   # │                         DATABASE                         │
   # ╰──────────────────────────────────────────────────────────╯
-  mysql:
-    build: ./config/mysql
+  mariadb:
+    image: mariadb:10.6.13-focal
     platform: $PLATFORM
-    container_name: mysql
+    container_name: mariadb
     restart: unless-stopped
     env_file: .env
     environment:
@@ -25,7 +25,7 @@ services:
   # ╰──────────────────────────────────────────────────────────╯
   wordpress:
     depends_on:
-      - mysql
+      - mariadb
     image: wordpress:6.2.0-php8.2-fpm-alpine
     platform: $PLATFORM
     container_name: wordpress
@@ -51,8 +51,8 @@ services:
   # ╰──────────────────────────────────────────────────────────╯
   webserver_dev:
     depends_on:
-      - mysql
-    build: ./config/nginx
+      - mariadb
+    image: nginx:1.23.4-alpine
     platform: $PLATFORM
     profiles: ['dev']
     container_name: webserver_dev
@@ -73,7 +73,7 @@ services:
   webserver_live:
     depends_on:
       - wordpress
-    build: ./config/nginx
+    image: nginx:1.23.4-alpine
     platform: $PLATFORM
     profiles: ['live']
     container_name: webserver_live
