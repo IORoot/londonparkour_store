@@ -2,24 +2,30 @@ version: '3.9'
 
 services:
 
-  db:
-    image: mysql:8.0
+  # ╭──────────────────────────────────────────────────────────╮
+  # │                         DATABASE                         │
+  # ╰──────────────────────────────────────────────────────────╯
+  mysql:
+    build: ./config/mysql
     platform: $PLATFORM
-    container_name: db
+    container_name: mysql
     restart: unless-stopped
     env_file: .env
     environment:
       - MYSQL_DATABASE=wordpress
     volumes:
-      - dbdata:/var/lib/mysql
+      - db-data:/var/lib/mysql
     command: '--default-authentication-plugin=mysql_native_password'
     networks:
-      - app-network
+      - store-londonparkour
 
 
+  # ╭──────────────────────────────────────────────────────────╮
+  # │                     PHP + WORDPRESS                      │
+  # ╰──────────────────────────────────────────────────────────╯
   wordpress:
     depends_on:
-      - db
+      - mysql
     image: wordpress:6.2.0-php8.2-fpm-alpine
     platform: $PLATFORM
     container_name: wordpress
@@ -34,15 +40,19 @@ services:
           define('WP_HOME', '$WP_HOME' );
           define('WP_SITEURL', '$WP_SITEURL' );
     volumes:
-      - wordpress:/var/www/html
-      - ${PWD}/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      - website-data:/var/www/html
+      - ${PWD}/config/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     networks:
-      - app-network
+      - store-londonparkour
 
+  # ╭──────────────────────────────────────────────────────────╮
+  # │                          NGINX                           │
+  # │                     Developer & Live                     │
+  # ╰──────────────────────────────────────────────────────────╯
   webserver_dev:
     depends_on:
-      - db
-    image: nginx:1.23.4-alpine
+      - mysql
+    build: ./config/nginx
     platform: $PLATFORM
     profiles: ['dev']
     container_name: webserver_dev
@@ -50,16 +60,20 @@ services:
     ports:
       - "80:80"
     volumes:
-      - wordpress:/var/www/html
-      - ./nginx-conf-dev:/etc/nginx/conf.d
+      - website-data:/var/www/html
+      - ${PWD}/config/nginx/nginx-conf-dev:/etc/nginx/conf.d
     networks:
-      - app-network
+      store-londonparkour:
+        aliases:
+          - store.londonparkour.com
+          - www.store.londonparkour.com
+          - localhost
 
 
   webserver_live:
     depends_on:
       - wordpress
-    image: nginx:1.23.4-alpine
+    build: ./config/nginx
     platform: $PLATFORM
     profiles: ['live']
     container_name: webserver_live
@@ -68,12 +82,19 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - wordpress:/var/www/html
-      - ./nginx-conf-live:/etc/nginx/conf.d
+      - website-data:/var/www/html
+      - ${PWD}/config/nginx/nginx-conf-live:/etc/nginx/conf.d
       - certbot-etc:/etc/letsencrypt
     networks:
-      - app-network
+      store-londonparkour:
+        aliases:
+          - store.londonparkour.com
+          - www.store.londonparkour.com
+          - localhost
 
+  # ╭──────────────────────────────────────────────────────────╮
+  # │                         CERTBOT                          │
+  # ╰──────────────────────────────────────────────────────────╯
   certbot:
     depends_on:
       - webserver_live
@@ -82,16 +103,15 @@ services:
     container_name: certbot
     volumes:
       - certbot-etc:/etc/letsencrypt
-      - wordpress:/var/www/html
-    command: certonly --webroot --webroot-path=/var/www/html --email $CERTBOT_EMAIL --agree-tos --no-eff-email --$CERTBOT_FLAG -d $CERTBOT_DOMAIN -d www.$CERTBOT_DOMAIN -d test.$CERTBOT_DOMAIN
+      - website-data:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email $CERTBOT_EMAIL --agree-tos --no-eff-email --$CERTBOT_FLAG -d $CERTBOT_DOMAIN -d startparkour.com 
 
   
 volumes:
   certbot-etc:
-  wordpress:
-  dbdata:
+  website-data:
+  db-data:
 
 networks:
-  app-network:
+  store-londonparkour:
     driver: bridge
-
