@@ -23,7 +23,7 @@ services:
   # ╭──────────────────────────────────────────────────────────╮
   # │                     PHP + WORDPRESS                      │
   # ╰──────────────────────────────────────────────────────────╯
-  wordpress:
+  storelondonparkour_wordpress:
     depends_on:
       - storelondonparkour_mariadb
     image: wordpress:6.2.0-php8.2-fpm-alpine
