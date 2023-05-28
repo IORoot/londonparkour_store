@@ -91,21 +91,6 @@ services:
           - store.londonparkour.com
           - www.store.londonparkour.com
           - localhost
-
-  # ╭──────────────────────────────────────────────────────────╮
-  # │                         CERTBOT                          │
-  # ╰──────────────────────────────────────────────────────────╯
-  # storelondonparkour_certbot:
-  #   depends_on:
-  #     - storelondonparkour_webserver_live
-  #   image: certbot/certbot
-  #   profiles: ['live']
-  #   container_name: storelondonparkour_certbot
-  #   volumes:
-  #     - certbot-etc:/etc/letsencrypt
-  #     - website-data:/var/www/html
-  #   command: certonly --webroot --webroot-path=/var/www/html --email $CERTBOT_EMAIL --agree-tos --no-eff-email --$CERTBOT_FLAG -d $CERTBOT_DOMAIN -d startparkour.com 
-
   
 volumes:
   certbot-etc:
