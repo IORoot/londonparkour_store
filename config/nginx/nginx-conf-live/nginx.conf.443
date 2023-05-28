@@ -1,6 +1,6 @@
 server {
-        listen 80;
-        listen [::]:80;
+        listen 2080;
+        listen [::]:2080;
 
         server_name store.londonparkour.com www.store.londonparkour.com startparkour.com www.startparkour.com;
 
@@ -15,7 +15,7 @@ server {
 }
 
 server {
-        listen 443 ssl http2;
+        listen 20443 ssl http2;
         listen [::]:443 ssl http2;
         server_name store.londonparkour.com www.store.londonparkour.com startparkour.com www.startparkour.com;
 

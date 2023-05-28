@@ -5,10 +5,10 @@ services:
   # ╭──────────────────────────────────────────────────────────╮
   # │                         DATABASE                         │
   # ╰──────────────────────────────────────────────────────────╯
-  mariadb:
+  storelondonparkour_mariadb:
     image: mariadb:10.6.13-focal
     platform: $PLATFORM
-    container_name: mariadb
+    container_name: storelondonparkour_mariadb
     restart: unless-stopped
     env_file: .env
     environment:
@@ -25,14 +25,14 @@ services:
   # ╰──────────────────────────────────────────────────────────╯
   wordpress:
     depends_on:
-      - mariadb
+      - storelondonparkour_mariadb
     image: wordpress:6.2.0-php8.2-fpm-alpine
     platform: $PLATFORM
-    container_name: wordpress
+    container_name: storelondonparkour_wordpress
     restart: unless-stopped
     env_file: .env
     environment:
-      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_HOST: storelondonparkour_mariadb:3306
       WORDPRESS_DB_USER: $MYSQL_USER
       WORDPRESS_DB_PASSWORD: $MYSQL_PASSWORD
       WORDPRESS_DB_NAME: $DATABASE_NAME
@@ -49,13 +49,13 @@ services:
   # │                          NGINX                           │
   # │                     Developer & Live                     │
   # ╰──────────────────────────────────────────────────────────╯
-  webserver_dev:
+  storelondonparkour_webserver_dev:
     depends_on:
-      - mariadb
+      - storelondonparkour_mariadb
     image: nginx:1.23.4-alpine
     platform: $PLATFORM
     profiles: ['dev']
-    container_name: webserver_dev
+    container_name: storelondonparkour_webserver_dev
     restart: unless-stopped
     ports:
       - "80:80"
@@ -70,17 +70,17 @@ services:
           - localhost
 
 
-  webserver_live:
+  storelondonparkour_webserver_live:
     depends_on:
-      - wordpress
+      - storelondonparkour_wordpress
     image: nginx:1.23.4-alpine
     platform: $PLATFORM
     profiles: ['live']
-    container_name: webserver_live
+    container_name: storelondonparkour_webserver_live
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "2080:80"
+      - "20443:443"
     volumes:
       - website-data:/var/www/html
       - ${PWD}/config/nginx/nginx-conf-live:/etc/nginx/conf.d
@@ -95,12 +95,12 @@ services:
   # ╭──────────────────────────────────────────────────────────╮
   # │                         CERTBOT                          │
   # ╰──────────────────────────────────────────────────────────╯
-  certbot:
+  storelondonparkour_certbot:
     depends_on:
-      - webserver_live
+      - storelondonparkour_webserver_live
     image: certbot/certbot
     profiles: ['live']
-    container_name: certbot
+    container_name: storelondonparkour_certbot
     volumes:
       - certbot-etc:/etc/letsencrypt
       - website-data:/var/www/html
