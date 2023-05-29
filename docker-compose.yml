@@ -58,7 +58,7 @@ services:
     container_name: storelondonparkour_webserver_dev
     restart: unless-stopped
     ports:
-      - "81:80"
+      - "81:81"
     volumes:
       - website-data:/var/www/html
       - ${PWD}/config/nginx/nginx-conf-dev:/etc/nginx/conf.d
