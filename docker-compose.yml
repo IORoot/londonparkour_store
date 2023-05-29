@@ -84,7 +84,6 @@ services:
     volumes:
       - website-data:/var/www/html
       - ${PWD}/config/nginx/nginx-conf-live:/etc/nginx/conf.d
-      - certbot-etc:/etc/letsencrypt
     networks:
       store-londonparkour:
         aliases:
@@ -93,7 +92,6 @@ services:
           - localhost
   
 volumes:
-  certbot-etc:
   website-data:
   db-data:
 

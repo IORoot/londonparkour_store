@@ -1,135 +1,186 @@
-# Store.londonparkour.com
+  
 
-This repository contains the infrastructure and code to fully deploy the store.londonparkour.com website.
+<div id="top"></div>
 
-## docker-compose
----
-Use this docker compose file to start up the container infrastructure.
+  
 
-### Starting the containers
+<div align="center">
 
-```bash
-docker compose up -d
+  
+
+<img src="https://londonparkour.com/wp-content/uploads/Essential/Epic-Slider/Store_black.svg" style="width:200px;"/>
+
+  
+
+<h3 align="center">London Parkour Store Infrastructure & Deployments</h3>
+
+  
+
+<p align="center">
+
+The docker-compose infrastructure and methods of deploying code / updates to the website.
+
+</p>
+
+</div>
+
+  
+
+## 1. <a name='TableofContents'></a>Table of Contents
+
+  
+
+  
+
+## 2. <a name='AboutTheProject'></a>About The Project
+
+
+## 2.1 The basics
+
+This repository holds the `docker-compose.yml` file that will build the correct infrastructure within docker for the LondonParkour store wordpress website.
+
+There are three containers with two volumes
+
+```mermaid
+flowchart LR
+	
+	storelondonparkour_webserver_live
+	storelondonparkour_wordpress
+	storelondonparkour_mariadb
+	website-data[(website-data)]
+	db-data[(db-data)]
+
+	storelondonparkour_webserver_live --> storelondonparkour_wordpress
+	storelondonparkour_webserver_live --> website-data
+	storelondonparkour_wordpress --> website-data
+	storelondonparkour_wordpress --> storelondonparkour_mariadb
+	storelondonparkour_mariadb --> db-data
+	
 ```
 
-### Switching from DEV to LIVE
 
-The `.env` file has a `COMPOSE_PROFILES=dev` variable. Switch to `COMPOSE_PROFILES=live`
+## 2.2 Updating the infrastructure
 
+All secrets and configuration are held in the `.env` file that is held within the GitHub secrets variable. Use base64 when updating the configuration.
 
-### Certbot
----
-The letsencrypt certbot needs to have the nginx port 80 running first on the live server. 
+You can then run the GitHub action on the repository to deploy onto the self-hosted runner on the same server. This runner will then pull any changes to the code or `.env` file and run `docker compose up -d` on the server.
 
-Rename the `config/nginx/nginx-conf-live/nginx.conf.80` file to `config/nginx/nginx-conf-live/nginx.conf` and start the certbot container.
+```mermaid
+flowchart LR
 
-```bash
-docker compose up certbot -d
-``` 
+	subgraph github["GitHub"]
+		repo["GitHub Repository"]
+		action["Github Action"]
+	end
 
-Check the logs to make sure the certificate has been obtained:
+	subgraph server["Server"]
+		runner["Runner"]
+		docker["Docker"]
+	end
 
-```bash
-docker logs certbot
+	repo --> action
+	action --> runner
+	runner --> docker
+
+	
 ```
 
-Once the certificate has been obtained, switch the `config/nginx/nginx-conf-live/nginx.conf.443` to being the `config/nginx/nginx-conf-live/nginx.conf`.
+## 2.3 Traffic / Server Infrastructure
 
-Restart the webserver container.
+To host multiple sites on the server you need to run an NGINX reverse proxy to point to multiple containers. Therefore the `nginx-proxy-manager` project is running on the server directing traffic and supplying certificates when needed. The proxy manager will forward on the correct traffic to the correct port / site.
 
-```bash
-docker compose restart webserver_live
+Visit the manager at [manager.londonparkour.com](manager.londonparkour.com)
+
+```mermaid
+flowchart LR
+
+	subgraph Server
+		nginx["NGINX proxy manager :80"]
+		docker["Docker"]
+		webserver1["LondonParkour NGINX webserver :2180"]
+		webserver2["Store NGINX webserver :2080"]
+	end
+
+	nginx --> docker
+	docker --> webserver1
+	docker --> webserver2
 ```
 
-You should now have a certificate running on the server.
 
-## PHP
+
+## 3. <a name='Usage'></a>Usage
+
+## 3.1 Deploying new changes to infrastructure
+
+To change the infrastructure, you can do the following:
+
+1. Change the repository code and push to `master`
+2. Update the `.env.live` code and run `cat .env.live | base64` then copy into the `ENV_LIVE_B64`  variable in github > settings > secrets & variables > Actions > Secrets
+3. Run the github action manually Github > Actions > DigitalOcean_Deploy_Live > Run workflow
+4. Check new infrastructure.
+
+
+## 3.2 Deploy new website code
+
+Use the `vump_site` tool to deploy new code up / down from a development version to live. The `vump` tool will copy the database SQL file and site code into a new backup image and push up to a container registry. You can then use the same tool to load the new code into the live site.
+
+All variables for `vump` are stored within the same `.env` file. This specifies the correct site volume, database container, database credentials and repository to use.
+
+### 3.2.1 Part 1 - Save (On Development Environment)
+
+1. On the DEVELOPMENT instance on the website on your laptop. 
+2. Login to the dockerhub repository account that stores the backups. `docker login --username londonparkourstore --password ???`
+3. Edit the `.env` file if needed to make sure you have the correct settings. If any settings are missing, `vump_site` will ask the question.
+4. Make sure you have the `vump` and `vump_site` tools installed [https://github.com/IORoot/docker-vump](https://github.com/IORoot/docker-vump) and they are linked in the `/usr/local/bin` folder. `vump_site` runs `vump`.
+5. Run `vump_site` in the same folder as the `.env` file and push the backup up to the repository.
+
+### 3.2.2 Part 2 - Load (On Production Environment)
+
+1. SSH into the production server
+2. Make sure you have the `vump` and `vump_site` tools installed [https://github.com/IORoot/docker-vump](https://github.com/IORoot/docker-vump) and they are linked in the `/usr/local/bin` folder. `vump_site` runs `vump`.
+3. Move into the folder with the live `.env` file. `cd /home/runner/actions-runnner-londonparkourstore/_work/londonparkourstore/londonparkourstore`
+4. Login to the dockerhub repository account that stores the backups. `docker login --username londonparkourstore --password ???`
+5. Run the `vump_site` and load the data from the repository.
+
+### Notes
+
+Within the `.env` file on both the local and live sites, the VUMP parts should be the same if you are using the same infrastructure on both.
+
+
+## 3.3 The Actions-Runner
+
+There is a self-hosted github runner on the box with a user `/home/runner`. There are currently three runners, one for the store, one for londonparkour.com and one for the nginx-proxy-manager.
+You can start / stop / status the runner with the commands:
+
+(Note `action-runner` was the first runner on the server and the store was used for this one. Which is why it doesn't have a suffix actions-runner-store)
+```bash
+/home/runner/actions-runner/svc.sh start
+/home/runner/actions-runner/svc.sh stop
+/home/runner/actions-runner/svc.sh status
+/home/runner/actions-runner/svc.sh install
+/home/runner/actions-runner/svc.sh uninstall
+```
+
+## 3.4 PHP
 ---
 You can configure the `php.ini` file by editing the `/config/php/uploads.ini` file and restarting the `wordpress` container.
 
-## Backups / Recover
-
-You can use the [vump](https://github.com/IORoot/docker-vump) tool to backup and recover the website.
-
-It will take a copy of the database and the data files, put them into a new container and push that container up to the container registry. 
-The specific settings are all held in the `.env` file on the server.
-
-## .env
-
-The `.env` file contains all of the main website variables used for both running the website and backing up.
-
-The file should contain the following:
-
-```bash
-# ╭──────────────────────────────────────────────────────────╮
-# │                      DOCKER COMPOSE                      │
-# ╰──────────────────────────────────────────────────────────╯
-
-    # Profile to use
-    # Switch between 'dev' and 'live' which will activate
-    # the correct webserver and certbot if on live.
-    # COMPOSE_PROFILES=live
-    COMPOSE_PROFILES=dev
-    
-    # MacOS M1/M2 chips need the linux/arm64/v8 specifically
-    # Linux will use the default linux/amd64 versions.
-    # PLATFORM=linux/amd64
-    PLATFORM=linux/arm64/v8
-    
-    # Sets database name so we do not clash with other
-    # website databases on the same mysql instance.
-    DATABASE_NAME=wordpress
-
-    # DOCKER MYSQL VARIABLES
-    # Use these on both the dev and live environments
-    # to make sure they work seemlessly.
-    MYSQL_ROOT_PASSWORD=????????
-    MYSQL_USER=????????
-    MYSQL_PASSWORD=????????
-
-    # DOCKER WORDPRESS VARIABLES
-    # Change these from localhost to the website domain
-    # so that wordpress doesn't use hard-coded links.
-    WP_SITEURL=http://localhost
-    WP_HOME=http://localhost
-
-    # DOCKER CERTBOT
-    # This is only used on live. The live version will
-    # use flag=force-renewal and the site domain. 
-    CERTBOT_EMAIL=me@gmail.com
-    CERTBOT_DOMAIN=localhost
-    CERTBOT_FLAG=staging
 
 
-# ╭──────────────────────────────────────────────────────────╮
-# │                       VUMP BACKUPS                       │
-# ╰──────────────────────────────────────────────────────────╯
+## 4. <a name='Troubleshooting'></a>Troubleshooting
 
-    # Name of the VOLUME that stores all of the website data. 
-    # This will be backed up to the registry as an image.
-    VUMP_WEBSITE_VOLUME_NAME="website-data"
+## 4.1 Things to check:
 
-    # The name of the CONTAINER of the database. MySQLDump will be used 
-    # on the DB to backup and put into the registry image.
-    VUMP_DATABASE_CONTAINER_NAME="mariadb"
+- `.env`
+- `.env.live` has been put into github correctly.
+- `fastcgi_pass londonparkourstore_wordpress:9000;` line in the `config/nginx/nginx-conf-live/nginx.conf` file.
+- correct ports / ssl in the [manager](manager.londonparkour.com)
 
-    # To get the MySQLDump to work we need the database username
-    # credentials for access.
-    VUMP_DB_USERNAME="????????"
+  
+  
 
-    # To get the MySQLDump to work we need the database password
-    # credentials for access.
-    VUMP_DB_PASSWORD="????????"
+## 6. <a name='Changelog'></a>Changelog
 
-    # This is the name of the database that will be dumped into the
-    # backup file. This will be the wordpress website database.
-    VUMP_DB_DATABASE="wordpress"
+v1.0.0
+- Initial deployment to docker for infrastructure.
 
-    # This is the name of the registry to send the backups to
-    # Can be a full URL, but default is dockerhub.
-    VUMP_REGISTRY_REPO="dockerhub_username/backup"
-
-    # The tag to add to the container image when pushing up to the
-    # container registry repository on dockerhub.
-    VUMP_PULL_TAG="latest"
-```
